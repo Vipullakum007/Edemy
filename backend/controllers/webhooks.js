@@ -67,7 +67,7 @@ const webhook_secret = process.env.STRIPE_WEBHOOK_SECRET
 
 const stripeInstance = new Stripe(api_secret)
 
-export const stripeWebhooks = async (req, res) => {
+export const stripeWebhooks = async (request, response) => {
   const sig = request.headers['stripe-signature'];
 
   let event;
