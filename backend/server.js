@@ -9,19 +9,21 @@ import courseRouter from './routes/courseRoutes.js';
 import userRouter from './routes/userRoutes.js';
 
 const app = express();
-app.use(express.json())
+
+app.post('/stripe', express.raw({type:'application/json'}) ,stripeWebhooks)
+
 
 // connect to DB
 await connectDB();
 
 // middlewares
+app.use(express.json())
 app.use(cors())
 app.use(clerkMiddleware())
 
 // routes
 app.get('/', (req, res) => res.send("Api Working"));
 app.post('/clerk', clerkWebhooks)
-app.post('/stripe', express.raw({type:'application/json'}) ,stripeWebhooks)
 
 app.use('/api/educator', educatorRouter)
 app.use('/api/course', courseRouter)
