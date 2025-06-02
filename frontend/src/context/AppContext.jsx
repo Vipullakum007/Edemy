@@ -1,8 +1,9 @@
 import { createContext, useEffect, useState } from "react";
-import { dummyCourses } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import humanizeDuration from "humanize-duration";
 import { useAuth, useUser } from '@clerk/clerk-react'
+import { toast } from 'react-toastify';
+import axios from 'axios'
 
 export const AppContext = createContext()
 
@@ -10,15 +11,51 @@ export const AppContextProvider = (props) => {
   const currency = import.meta.env.VITE_CURRENCY || '$';
   const [allCourses, setAllCourses] = useState([]);
   const navigate = useNavigate();
-  const [isEducator, setIsEducator] = useState(true);
+  const [isEducator, setIsEducator] = useState(false);
   const [enrolledCourses, setEnrolledCourses] = useState([])
+  const [userData, setUserData] = useState(null);
 
   const { getToken } = useAuth();
   const { user } = useUser();
 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const fetchAllCourses = async () => {
-    setAllCourses(dummyCourses);
+    try {
+      const { data } = await axios(`${BACKEND_URL}/api/course/all`);
+
+      if (data.success) {
+        setAllCourses(data.courses);
+      }
+      else {
+        toast.error(data.message || "Failed to fetch courses");
+      }
+
+    } catch (error) {
+      toast.error(error.message || "Failed to fetch courses");
+    }
     console.log("All courses fetched successfully:", allCourses);
+  }
+
+  //const fetch user data
+  const fetchUserData = async () => {
+    if (user.publicMetadata.role == 'educator') {
+      setIsEducator(true);
+    }
+    try {
+      const token = await getToken();
+      const { data } = await axios.get(`${BACKEND_URL}/api/user/data`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (data.success) {
+        setUserData(data.user);
+      } else {
+        toast.error(data.message || "Failed to fetch user data");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to fetch user data");
+    }
   }
 
   const calculateRating = (course) => {
@@ -29,7 +66,7 @@ export const AppContextProvider = (props) => {
     course.courseRatings.forEach(rating => {
       totalrating += rating.rating
     })
-    return totalrating / course.courseRatings.length;
+    return Math.floor(totalrating / course.courseRatings.length);
   }
 
   const calculateTotalDuration = (course) => {
@@ -64,7 +101,21 @@ export const AppContextProvider = (props) => {
   };
 
   const fetchEnrolledCourses = async () => {
-    setEnrolledCourses(dummyCourses);
+    try {
+      const token = await getToken();
+      const { data } = await axios.get(`${BACKEND_URL}/api/user/enrolled-courses`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (data.success) {
+        setEnrolledCourses(data.enrolledCourses.reverse());
+      } else {
+        toast.error(data.message || "Failed to fetch enrolled courses");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to fetch enrolled courses");
+    }
   }
 
   const formatDuration = (minutes) => {
@@ -74,20 +125,23 @@ export const AppContextProvider = (props) => {
 
   useEffect(() => {
     fetchAllCourses();
-    fetchEnrolledCourses();
   }, [])
 
-  const logToken = async () =>{
-    console.log(await getToken() )
-  } 
-  useEffect(()=>{
-    if(user){
+  const logToken = async () => {
+    console.log(await getToken())
+  }
+
+  useEffect(() => {
+    if (user) {
       logToken()
+      fetchUserData();
+      fetchEnrolledCourses();
     }
-  },[user])
+  }, [user])
 
   const value = {
-    currency, allCourses, navigate, calculateRating, isEducator, setIsEducator, enrolledCourses, fetchEnrolledCourses, calculateTotalDuration, calculateChapterTime, getTotalLectures, formatDuration
+    currency, allCourses, navigate, calculateRating, isEducator, setIsEducator, enrolledCourses, fetchEnrolledCourses, calculateTotalDuration, calculateChapterTime, getTotalLectures, formatDuration,
+    BACKEND_URL, userData, setUserData, getToken, fetchAllCourses
   }
 
   return (

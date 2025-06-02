@@ -1,10 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import uniqid from 'uniqid';
 import Quill from 'quill';
 import { assets } from '../../assets/assets';
+import { AppContext } from '../../context/AppContext';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 
 const AddCourse = () => {
 
+  const { BACKEND_URL, getToken } = useContext(AppContext);
   const quillRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -17,6 +21,7 @@ const AddCourse = () => {
   const [currentChapterId, setCurrentChapterId] = useState(null);
   const [showChapterPopup, setShowChapterPopup] = useState(false);
   const [chapterTitle, setChapterTitle] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [lectureDetails, setLectureDetails] = useState(
     {
       lectureTitle: '',
@@ -103,7 +108,45 @@ const AddCourse = () => {
 
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    try {
+      e.preventDefault();
+      setIsSubmitting(true);
+      if (!image) {
+        toast.error("Please upload a course thumbnail");
+        setIsSubmitting(false);
+        return;
+      }
+      const courseData = {
+        courseTitle,
+        courseDescription: quillRef.current.root.innerHTML,
+        coursePrice: Number(coursePrice),
+        discount: Number(discount),
+        courseContent: chapters,
+      }
+      const formData = new FormData();
+      formData.append('courseData', JSON.stringify(courseData));
+      formData.append('image', image);
+      const token = await getToken();
+      const { data } = await axios.post(`${BACKEND_URL}/api/educator/add-course`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        toast.success(data.message || "Course added successfully!");
+        setCourseTitle('');
+        setCoursePrice(0);
+        setDiscount(0);
+        setImage(null);
+        setChapters([]);
+        quillRef.current.root.innerHTML = '';
+      } else {
+        toast.error(data.message || "Failed to add course");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to add course");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   useEffect(() => {
@@ -334,8 +377,25 @@ const AddCourse = () => {
             )
           }
         </div>
-
-        <button type="submit" className='bg-black text-white w-max py-2.5 px-8 rouded my-4'>ADD</button>
+        <button
+          type="submit"
+          className='bg-black text-white w-max py-2.5 px-8 rouded my-4 flex items-center justify-center gap-2'
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <img
+                src={assets.loading_spinner}
+                alt="Loading"
+                className="w-5 h-5 animate-spin"
+              />
+              Adding Course...
+            </>
+          ) : (
+            "ADD"
+          )}
+        </button>
+        {/* <button type="submit" className='bg-black text-white w-max py-2.5 px-8 rouded my-4'>ADD</button> */}
 
       </form>
     </div>

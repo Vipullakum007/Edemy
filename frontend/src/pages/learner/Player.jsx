@@ -5,21 +5,74 @@ import { assets } from '../../assets/assets';
 import YouTube from 'react-youtube';
 import Footer from '../../components/learner/Footer';
 import Rating from '../../components/learner/Rating';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import Loading from '../../components/learner/Loading';
 
 const Player = () => {
 
-  const { enrolledCourses, calculateChapterTime, calculateTotalDuration, getTotalLectures, calculateRating, formatDuration } = useContext(AppContext);
+  const { enrolledCourses, calculateChapterTime, calculateTotalDuration, getTotalLectures, formatDuration, BACKEND_URL, getToken, userData, fetchEnrolledCourses } = useContext(AppContext);
   const { courseId } = useParams();
   const [courseData, setCourseData] = useState(null);
   const [expandedChapters, setExpandedChapters] = useState({});
   const [playerData, setPlayerData] = useState(null);
+  const [progressData, setProgressData] = useState(null);
+  const [initialRating, setInitialRating] = useState(0);
+
+  const getCourseData = async () => {
+    enrolledCourses.map((course) => {
+      if (course._id == courseId) {
+        setCourseData(course);
+        course.courseRatings.map((item) => {
+          if (item.userId === userData._id) {
+            setInitialRating(item.rating);
+          }
+        })
+      }
+    })
+  }
 
   useEffect(() => {
-    if (courseId && enrolledCourses.length > 0) {
-      const foundCourse = enrolledCourses.find(c => c._id === courseId);
-      setCourseData(foundCourse);
+    if (enrolledCourses.length > 0) {
+      getCourseData();
     }
   }, [courseId, enrolledCourses]);
+
+  const markLectureAsCompleted = async (lectureId) => {
+    try {
+      const token = await getToken();
+      const { data } = await axios.post(`${BACKEND_URL}/api/user/update-course-progress`,
+        { courseId, lectureId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (data.success) {
+        toast.success(data.message || 'Mark as completed successfully')
+        getCourseProgress()
+      } else {
+        toast.error(data.message || 'not mark as completed try again later')
+      }
+    } catch (error) {
+      toast.error(error.message || 'not mark as completed try again later')
+    }
+  }
+
+  const getCourseProgress = async () => {
+    try {
+      const token = await getToken()
+      const { data } = await axios.post(`${BACKEND_URL}/api/user/get-course-progress`,
+        { courseId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (data.success) {
+        setProgressData(data.progressData)
+      }
+      else {
+        toast.error(data.message || 'Failed to fetch course progress data , try again later')
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to fetch course progress data , try again later')
+    }
+  }
 
   const toggleChapter = (chapterId) => {
     setExpandedChapters(prev => ({
@@ -28,23 +81,33 @@ const Player = () => {
     }));
   };
 
+  const handleRate = async (rating) => {
+    try {
+      const token = await getToken();
+      const { data } = await axios.post(`${BACKEND_URL}/api/user/add-rating`,
+        { courseId, rating },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (data.success) {
+        toast.success(data.message)
+        fetchEnrolledCourses()
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  useEffect(() => {
+    getCourseProgress()
+  }, [])
+
   // Calculate these values only when courseData is available
   const totalDuration = courseData ? calculateTotalDuration(courseData) : "0m";
   const totallectures = courseData ? getTotalLectures(courseData) : 0;
-  const someCondition = false;
 
-  if (!courseData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading course details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+  return courseData ? (
     <>
       <div className='p-4 sm:p-10 flex flex-col-reverse md:grid md:grid-cols-2 gap-10 md:px-36'>
 
@@ -78,7 +141,7 @@ const Player = () => {
                     {chapter.chapterContent.map((lecture, i) => (
                       <div key={lecture.lectureId} className="flex items-center justify-between p-4 pl-12 hover:bg-gray-50">
                         <div className="flex items-center gap-3">
-                          <img src={someCondition ? assets.blue_tick_icon : assets.play_icon} alt="play_icon" className="w-5 h-5" />
+                          <img src={progressData && progressData.lectureCompleted.includes(lecture.lectureId) ? assets.blue_tick_icon : assets.play_icon} alt="play_icon" className="w-5 h-5" />
                           <span className="text-gray-700">{lecture.lectureTitle}</span>
                           {lecture.lectureUrl && (
                             <span
@@ -98,7 +161,7 @@ const Player = () => {
           {/* rate this course */}
           <div className='flex items-center gap-2 py-3 mt-10'>
             <h1 className='text-xl font-bold'>Rate this course</h1>
-            <Rating initialRating={0} />
+            <Rating initialRating={initialRating} onRate={handleRate} />
           </div>
 
         </div>
@@ -113,7 +176,7 @@ const Player = () => {
                 <YouTube videoId={playerData.lectureUrl.split('/').pop()} iframeClassName='w-full aspect-video' />
                 <div className='flex justify-between  items-center mt-1'>
                   <p>{playerData.chapter}.{playerData.lecture} {playerData.lectureTitle}</p>
-                  <button className='text-blue-600'>{someCondition ? 'Completed' : 'Mark as Complete'}</button>
+                  <button onClick={() => markLectureAsCompleted(playerData.lectureId)} className='text-blue-600'>{progressData && progressData.lectureCompleted.includes(playerData.lectureId) ? 'Completed' : 'Mark as Complete'}</button>
                 </div>
               </div>)
               :
@@ -123,7 +186,8 @@ const Player = () => {
       </div>
       <Footer />
     </>
-  )
+  ) :
+    <Loading />
 }
 
 export default Player

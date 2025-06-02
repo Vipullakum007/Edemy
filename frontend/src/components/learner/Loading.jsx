@@ -1,11 +1,24 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const Loading = () => {
+
+  const { path } = useParams();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (path) {
+      const timer = setTimeout(() => {
+        navigate(`/${path}`);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [],)
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading ...</p>
+        <div className="animate-spin rounded-full w-16 sm:w-20 aspect-square border-4 border-gray-300 border-t-4 border-t-blue-400"></div>
       </div>
     </div>
   )

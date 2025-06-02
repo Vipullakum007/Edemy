@@ -13,6 +13,7 @@ import MyCourses from './pages/educator/MyCourses'
 import StudentsEnrolled from './pages/educator/StudentsEnrolled'
 import Navbar from './components/learner/Navbar'
 import 'quill/dist/quill.snow.css'
+import { ToastContainer , Bounce } from 'react-toastify';
 
 const App = () => {
 
@@ -20,6 +21,19 @@ const App = () => {
 
   return (
     <div className='text-default min-h-screen bg-white'>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Bounce}
+      />
       {!isEducatorRoute && <Navbar />
       }
       <Routes>

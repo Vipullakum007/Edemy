@@ -8,7 +8,6 @@ import CourseProgress from '../models/CourseProgress.js';
 export const getUserData = async (req, res) => {
   try {
     const userId = req.auth.userId;
-    console.log('userid : ', userId);
     const user = await User.findById(userId)
     if (!user) {
       return res.json({ success: false, message: 'User not found ' })
@@ -57,7 +56,7 @@ export const purchaseCourse = async (req, res) => {
     const currency = process.env.CURRENCY.toLowerCase()
 
     const stripeInstance = new Stripe(stripe_secret_key)
-    //creating line items fro stipe
+    //creating line items for stripe
     const line_items = [{
       price_data: {
         currency,

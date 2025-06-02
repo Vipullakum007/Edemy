@@ -43,6 +43,7 @@ import profile_img2 from './profile_img2.png'
 import profile_img3 from './profile_img3.png'
 import lesson_icon from './lesson_icon.svg'
 import correct_icon from './correct_icon.svg'
+import loadingSpinner from './loading_spinner.svg';
 
 export const assets = {
     logo,
@@ -89,7 +90,8 @@ export const assets = {
     play_icon,
     blue_tick_icon,
     lesson_icon,
-    correct_icon
+    correct_icon,
+    loading_spinner: loadingSpinner
 }
 
 export const dummyEducatorData = {

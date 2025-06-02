@@ -3,7 +3,7 @@ import { clerkClient } from "@clerk/express";
 export const authMiddleware = async (req, res, next) => {
   try {
     const userId = req.auth.userId;
-    console.log("Authenticated User ID:", userId);
+    // console.log("Authenticated User ID:", userId);
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized Access" });
     }

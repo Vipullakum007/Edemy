@@ -75,14 +75,14 @@ export const getEducatorCourses = async (req, res) => {
 // get educator dashboard data(total earning, enrolled students, no of courses)
 export const getEducatorDashboardData = async (req, res) => {
   try {
-    const eduatorId = req.auth.userId;
-    const courses = await Course.find({ educator: eduatorId });
+    const educatorId = req.auth.userId;
+    const courses = await Course.find({ educator: educatorId });
     const totalCourses = courses.length;
     const courseIds = courses.map(course => course._id);
 
     //calculate total earning from purchases
-    const purchases = await Purchase.find({ course: { $in: courseIds }, status: 'completed' });
-    const totalEarning = purchases.reduce((acc, purchase) => acc + purchase.amount, 0);
+    const purchases = await Purchase.find({ courseId: { $in: courseIds }, status: 'completed' });
+    const totalEarnings = purchases.reduce((acc, purchase) => acc + purchase.amount, 0);
 
     // collect unique enrolled student ids with their course titles
     const enrolledStudents = [];
@@ -98,7 +98,7 @@ export const getEducatorDashboardData = async (req, res) => {
 
     res.json({
       success: true, dashboardData: {
-        totalEarning,
+        totalEarnings,
         enrolledStudents,
         totalCourses
       }
@@ -108,6 +108,7 @@ export const getEducatorDashboardData = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // get enrolled student data with purchase data
 export const getEnrolledStudents = async (req, res) => {
